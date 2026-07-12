@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Крестики-нолики</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  :root {
+    --bg-top: #fbfbfd;
+    --bg-bottom: #eef1f6;
+    --head: #1d1d1f;
+    --sub: #6e6e73;
+    --cell-bg: rgba(0,0,0,0.045);
+    --cell-bg-hover: rgba(0,0,0,0.08);
+    --cell-border: rgba(0,0,0,0.08);
+    --win-bg: rgba(110,168,255,0.22);
+    --btn-bg: rgba(0,0,0,0.05);
+    --btn-bg-hover: rgba(0,0,0,0.09);
+    --x-color: #3b6fe0;
+    --o-color: #e0507a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-top: #0b0b0f;
+      --bg-bottom: #16181f;
+      --head: #f5f5f7;
+      --sub: #a1a1a6;
+      --cell-bg: rgba(255,255,255,0.06);
+      --cell-bg-hover: rgba(255,255,255,0.1);
+      --cell-border: rgba(255,255,255,0.1);
+      --win-bg: rgba(110,168,255,0.28);
+      --btn-bg: rgba(255,255,255,0.09);
+      --btn-bg-hover: rgba(255,255,255,0.14);
+      --x-color: #8ec2ff;
+      --o-color: #ff9fd4;
+    }
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--head);
+    transition: background 0.4s ease, color 0.4s ease;
+  }
+
+  .home-link {
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--sub);
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: var(--btn-bg);
+    transition: background 0.2s ease;
+  }
+  .home-link:hover { background: var(--btn-bg-hover); }
+
+  h1 {
+    margin: 0 0 4px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: clamp(30px, 6vw, 42px);
+    text-align: center;
+  }
+
+  #status {
+    margin: 0 0 22px;
+    font-size: clamp(15px, 2.6vw, 18px);
+    color: var(--sub);
+    min-height: 24px;
+    text-align: center;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(72px, 96px));
+    grid-template-rows: repeat(3, minmax(72px, 96px));
+    gap: 10px;
+  }
+
+  .cell {
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    border-radius: 16px;
+    font-size: clamp(32px, 8vw, 44px);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+    color: var(--head);
+    user-select: none;
+  }
+  .cell:hover:not(.filled) { background: var(--cell-bg-hover); }
+  .cell:active:not(.filled) { transform: scale(0.96); }
+  .cell.filled { cursor: default; }
+  .cell.win { background: var(--win-bg); }
+  .cell.x { color: var(--x-color); }
+  .cell.o { color: var(--o-color); }
+
+  #restart {
+    margin-top: 26px;
+    padding: 11px 24px;
+    border: none;
+    border-radius: 12px;
+    background: var(--btn-bg);
+    color: var(--head);
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  #restart:hover { background: var(--btn-bg-hover); }
+</style>
+</head>
+<body>
+  <a class="home-link" href="index.html">&larr; На главную</a>
+  <h1>Крестики-нолики</h1>
+  <p id="status"></p>
+  <div id="board"></div>
+  <button id="restart">Играть снова</button>
+
+  <script>
+    const WIN_LINES = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6],
+    ];
+
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const restartBtn = document.getElementById('restart');
+
+    let cells = Array(9).fill(null);
+    let current = 'X';
+    let over = false;
+
+    function checkResult() {
+      for (const line of WIN_LINES) {
+        const [a, b, c] = line;
+        if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+          return { winner: cells[a], line };
+        }
+      }
+      if (cells.every(Boolean)) return { winner: null, line: null, draw: true };
+      return null;
+    }
+
+    function render() {
+      boardEl.innerHTML = '';
+      const result = checkResult();
+      const winLine = result && result.line ? result.line : [];
+
+      cells.forEach((val, i) => {
+        const div = document.createElement('div');
+        div.className = 'cell' + (val ? ' filled ' + val.toLowerCase() : '');
+        if (winLine.includes(i)) div.classList.add('win');
+        div.textContent = val || '';
+        div.addEventListener('click', () => handleMove(i));
+        boardEl.appendChild(div);
+      });
+
+      if (result && result.winner) {
+        statusEl.textContent = `Победили «${result.winner}»!`;
+        over = true;
+      } else if (result && result.draw) {
+        statusEl.textContent = 'Ничья!';
+        over = true;
+      } else {
+        statusEl.textContent = `Ход игрока «${current}»`;
+      }
+    }
+
+    function handleMove(i) {
+      if (over || cells[i]) return;
+      cells[i] = current;
+      current = current === 'X' ? 'O' : 'X';
+      render();
+    }
+
+    function restart() {
+      cells = Array(9).fill(null);
+      current = 'X';
+      over = false;
+      render();
+    }
+
+    restartBtn.addEventListener('click', restart);
+    render();
+  </script>
+</body>
+</html>
