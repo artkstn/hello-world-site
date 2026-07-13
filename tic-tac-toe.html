@@ -101,12 +101,12 @@
     align-items: center;
     font-size: 14px;
     font-weight: 500;
-    color: var(--sub);
+    color: var(--head);
     text-decoration: none;
     padding: 0 14px;
     border-radius: 10px;
     background: var(--btn-bg);
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, color 0.4s ease;
   }
   .home-link:hover { background: var(--btn-bg-hover); }
 
@@ -192,7 +192,7 @@
 </style>
 </head>
 <body>
-  <a class="home-link" href="index.html">&larr; На главную</a>
+  <a class="home-link" href="index.html">На главную</a>
   <button id="theme-toggle" aria-label="Переключить тему"></button>
   <h1>Крестики-нолики</h1>
   <p id="status"></p>
