@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кроссворд</title>
+<script>
+  (function() {
+    try {
+      var stored = localStorage.getItem('theme');
+      var theme = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  :root {
+    --bg-top: #fbfbfd;
+    --bg-bottom: #eef1f6;
+    --head: #1d1d1f;
+    --sub: #6e6e73;
+    --cell-bg: rgba(0,0,0,0.045);
+    --cell-bg-hover: rgba(0,0,0,0.08);
+    --cell-border: rgba(0,0,0,0.08);
+    --btn-bg: rgba(0,0,0,0.05);
+    --btn-bg-hover: rgba(0,0,0,0.09);
+    --correct-bg: rgba(52,168,83,0.22);
+    --correct-text: #1e8a3e;
+    --incorrect-bg: rgba(224,80,80,0.18);
+    --incorrect-text: #c23b3b;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-top: #0b0b0f;
+      --bg-bottom: #16181f;
+      --head: #f5f5f7;
+      --sub: #a1a1a6;
+      --cell-bg: rgba(255,255,255,0.06);
+      --cell-bg-hover: rgba(255,255,255,0.1);
+      --cell-border: rgba(255,255,255,0.1);
+      --btn-bg: rgba(255,255,255,0.09);
+      --btn-bg-hover: rgba(255,255,255,0.14);
+      --correct-bg: rgba(52,168,83,0.28);
+      --correct-text: #6fe08f;
+      --incorrect-bg: rgba(224,80,80,0.24);
+      --incorrect-text: #ff9b9b;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg-top: #fbfbfd;
+    --bg-bottom: #eef1f6;
+    --head: #1d1d1f;
+    --sub: #6e6e73;
+    --cell-bg: rgba(0,0,0,0.045);
+    --cell-bg-hover: rgba(0,0,0,0.08);
+    --cell-border: rgba(0,0,0,0.08);
+    --btn-bg: rgba(0,0,0,0.05);
+    --btn-bg-hover: rgba(0,0,0,0.09);
+    --correct-bg: rgba(52,168,83,0.22);
+    --correct-text: #1e8a3e;
+    --incorrect-bg: rgba(224,80,80,0.18);
+    --incorrect-text: #c23b3b;
+  }
+
+  :root[data-theme="dark"] {
+    --bg-top: #0b0b0f;
+    --bg-bottom: #16181f;
+    --head: #f5f5f7;
+    --sub: #a1a1a6;
+    --cell-bg: rgba(255,255,255,0.06);
+    --cell-bg-hover: rgba(255,255,255,0.1);
+    --cell-border: rgba(255,255,255,0.1);
+    --btn-bg: rgba(255,255,255,0.09);
+    --btn-bg-hover: rgba(255,255,255,0.14);
+    --correct-bg: rgba(52,168,83,0.28);
+    --correct-text: #6fe08f;
+    --incorrect-bg: rgba(224,80,80,0.24);
+    --incorrect-text: #ff9b9b;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 90px 24px 48px;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--head);
+    transition: background 0.4s ease, color 0.4s ease;
+  }
+
+  .home-link {
+    position: absolute;
+    top: 22px;
+    left: 22px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--head);
+    text-decoration: none;
+    padding: 0 14px;
+    border-radius: 10px;
+    background: var(--btn-bg);
+    transition: background 0.2s ease, color 0.4s ease;
+  }
+  .home-link:hover { background: var(--btn-bg-hover); }
+
+  #theme-toggle {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    width: 42px;
+    height: 38px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: var(--btn-bg);
+    color: var(--head);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.4s ease;
+  }
+  #theme-toggle:hover { background: var(--btn-bg-hover); }
+
+  h1 {
+    margin: 0 0 4px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: clamp(30px, 6vw, 42px);
+    text-align: center;
+  }
+
+  #status {
+    margin: 0 0 26px;
+    font-size: clamp(15px, 2.6vw, 18px);
+    color: var(--sub);
+    min-height: 24px;
+    text-align: center;
+  }
+
+  .board-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 720px;
+  }
+
+  #grid {
+    display: grid;
+    gap: 6px;
+  }
+
+  .cell {
+    position: relative;
+    width: clamp(40px, 10vw, 54px);
+    height: clamp(40px, 10vw, 54px);
+  }
+
+  .cell.blocked { visibility: hidden; }
+
+  .cell input {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: clamp(18px, 4vw, 24px);
+    font-weight: 700;
+    font-family: inherit;
+    text-transform: uppercase;
+    background: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    border-radius: 10px;
+    color: var(--head);
+    padding: 0;
+    caret-color: transparent;
+    transition: background 0.15s ease, color 0.4s ease, border-color 0.15s ease;
+  }
+  .cell input:focus { background: var(--cell-bg-hover); outline: none; }
+  .cell input.correct { background: var(--correct-bg); color: var(--correct-text); border-color: transparent; }
+  .cell input.incorrect { background: var(--incorrect-bg); color: var(--incorrect-text); border-color: transparent; }
+
+  .cell .num {
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--sub);
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  .clues {
+    min-width: 220px;
+    max-width: 320px;
+  }
+
+  .clues h2 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .clues ul {
+    list-style: none;
+    margin: 0 0 20px;
+    padding: 0;
+  }
+
+  .clues li {
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .clues li:hover { background: var(--btn-bg); }
+  .clues li.active { background: var(--btn-bg-hover); font-weight: 600; }
+  .clues li b { margin-right: 4px; }
+
+  .actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .actions button {
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 24px;
+    border: none;
+    border-radius: 12px;
+    background: var(--btn-bg);
+    color: var(--head);
+    font-family: inherit;
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .actions button:hover { background: var(--btn-bg-hover); }
+</style>
+</head>
+<body>
+  <a class="home-link" href="index.html">На главную</a>
+  <button id="theme-toggle" aria-label="Переключить тему"></button>
+  <h1>Кроссворд</h1>
+  <p id="status">Заполните клетки и нажмите «Проверить»</p>
+
+  <div class="board-wrap">
+    <div id="grid"></div>
+    <div class="clues">
+      <h2>По горизонтали</h2>
+      <ul id="across-clues"></ul>
+      <h2>По вертикали</h2>
+      <ul id="down-clues"></ul>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="check">Проверить</button>
+    <button id="reset">Сбросить</button>
+  </div>
+
+  <script>
+    const MOON_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor"/></svg>';
+    const SUN_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4.9" y1="4.9" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.1" y2="19.1"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="4.9" y1="19.1" x2="6.3" y2="17.7"/><line x1="17.7" y1="6.3" x2="19.1" y2="4.9"/></svg>';
+
+    const themeToggle = document.getElementById('theme-toggle');
+
+    function renderThemeIcon() {
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      themeToggle.innerHTML = theme === 'light' ? MOON_ICON : SUN_ICON;
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
+      renderThemeIcon();
+    });
+
+    renderThemeIcon();
+
+    // Words defined by their start cell; the grid is derived from them so the
+    // solution and the clue list can never drift apart.
+    const WORDS = [
+      { row: 0, col: 0, dir: 'across', answer: 'КОДЕР', clue: 'Тот, кто пишет программы' },
+      { row: 0, col: 0, dir: 'down', answer: 'КОТ', clue: 'Мяукающий домашний питомец' },
+      { row: 0, col: 1, dir: 'down', answer: 'ОСА', clue: 'Полосатое жалящее насекомое' },
+      { row: 0, col: 2, dir: 'down', answer: 'ДОМ', clue: 'Место, где живут' },
+      { row: 0, col: 3, dir: 'down', answer: 'ЕЛЬ', clue: 'Хвойное дерево, которое наряжают на Новый год' },
+      { row: 0, col: 4, dir: 'down', answer: 'РУКА', clue: 'Часть тела, которой держат мышку' },
+    ];
+
+    let rows = 0, cols = 0;
+    WORDS.forEach(w => {
+      const len = w.dir === 'across' ? w.answer.length : 1;
+      const height = w.dir === 'down' ? w.answer.length : 1;
+      rows = Math.max(rows, w.row + height);
+      cols = Math.max(cols, w.col + len);
+    });
+
+    const solution = Array.from({ length: rows }, () => Array(cols).fill(null));
+    WORDS.forEach(w => {
+      for (let i = 0; i < w.answer.length; i++) {
+        const r = w.dir === 'down' ? w.row + i : w.row;
+        const c = w.dir === 'across' ? w.col + i : w.col;
+        solution[r][c] = w.answer[i];
+      }
+    });
+
+    function isOpen(r, c) {
+      return r >= 0 && r < rows && c >= 0 && c < cols && solution[r][c] !== null;
+    }
+
+    // Numbers come only from declared word starts (not grid geometry), so
+    // incidental open runs formed where down words sit side by side never
+    // get mistaken for extra, clue-less across entries.
+    const startCoords = [...new Set(WORDS.map(w => w.row + ',' + w.col))]
+      .map(key => key.split(',').map(Number))
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const numberAt = {};
+    startCoords.forEach(([r, c], i) => { numberAt[r + ',' + c] = i + 1; });
+
+    WORDS.forEach(w => { w.number = numberAt[w.row + ',' + w.col]; });
+
+    const gridEl = document.getElementById('grid');
+    gridEl.style.gridTemplateColumns = `repeat(${cols}, auto)`;
+
+    const inputs = {};
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cellDiv = document.createElement('div');
+        if (!isOpen(r, c)) {
+          cellDiv.className = 'cell blocked';
+          gridEl.appendChild(cellDiv);
+          continue;
+        }
+        cellDiv.className = 'cell';
+
+        const num = numberAt[r + ',' + c];
+        if (num) {
+          const label = document.createElement('span');
+          label.className = 'num';
+          label.textContent = num;
+          cellDiv.appendChild(label);
+        }
+
+        const input = document.createElement('input');
+        input.maxLength = 1;
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.dataset.r = r;
+        input.dataset.c = c;
+        cellDiv.appendChild(input);
+        gridEl.appendChild(cellDiv);
+        inputs[r + ',' + c] = input;
+      }
+    }
+
+    function wordCells(word) {
+      const cells = [];
+      for (let i = 0; i < word.answer.length; i++) {
+        const r = word.dir === 'down' ? word.row + i : word.row;
+        const c = word.dir === 'across' ? word.col + i : word.col;
+        cells.push([r, c]);
+      }
+      return cells;
+    }
+
+    function wordsAt(r, c) {
+      return WORDS.filter(w => wordCells(w).some(([wr, wc]) => wr === r && wc === c));
+    }
+
+    let currentDir = 'across';
+    let lastFocused = null;
+
+    function renderClues() {
+      const acrossList = document.getElementById('across-clues');
+      const downList = document.getElementById('down-clues');
+      acrossList.innerHTML = '';
+      downList.innerHTML = '';
+      WORDS.slice().sort((a, b) => a.number - b.number).forEach(w => {
+        const li = document.createElement('li');
+        li.innerHTML = `<b>${w.number}.</b>${w.clue} (${w.answer.length})`;
+        li.dataset.number = w.number;
+        li.dataset.dir = w.dir;
+        li.addEventListener('click', () => {
+          currentDir = w.dir;
+          const [r, c] = wordCells(w)[0];
+          inputs[r + ',' + c].focus();
+        });
+        (w.dir === 'across' ? acrossList : downList).appendChild(li);
+      });
+    }
+    renderClues();
+
+    function highlightClue() {
+      document.querySelectorAll('.clues li').forEach(li => li.classList.remove('active'));
+      if (!lastFocused) return;
+      const [r, c] = lastFocused;
+      const active = wordsAt(r, c).find(w => w.dir === currentDir) || wordsAt(r, c)[0];
+      if (!active) return;
+      const li = document.querySelector(`.clues li[data-number="${active.number}"][data-dir="${active.dir}"]`);
+      if (li) li.classList.add('active');
+    }
+
+    function nextCell(r, c, dir, step) {
+      return dir === 'across' ? [r, c + step] : [r + step, c];
+    }
+
+    Object.values(inputs).forEach(input => {
+      input.addEventListener('focus', () => {
+        const r = Number(input.dataset.r), c = Number(input.dataset.c);
+        const avail = wordsAt(r, c).map(w => w.dir);
+        if (lastFocused && lastFocused[0] === r && lastFocused[1] === c && avail.length > 1) {
+          currentDir = currentDir === 'across' ? 'down' : 'across';
+        } else if (!avail.includes(currentDir)) {
+          currentDir = avail[0];
+        }
+        lastFocused = [r, c];
+        highlightClue();
+      });
+
+      input.addEventListener('input', () => {
+        input.classList.remove('correct', 'incorrect');
+        let val = input.value.toUpperCase().replace(/[^А-ЯЁ]/g, '');
+        input.value = val.slice(-1);
+        if (!input.value) return;
+        const r = Number(input.dataset.r), c = Number(input.dataset.c);
+        const [nr, nc] = nextCell(r, c, currentDir, 1);
+        const next = inputs[nr + ',' + nc];
+        if (next) next.focus();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        const r = Number(input.dataset.r), c = Number(input.dataset.c);
+        if (e.key === 'Backspace' && !input.value) {
+          const [pr, pc] = nextCell(r, c, currentDir, -1);
+          const prev = inputs[pr + ',' + pc];
+          if (prev) { prev.focus(); prev.value = ''; prev.classList.remove('correct', 'incorrect'); }
+          e.preventDefault();
+        } else if (e.key === 'ArrowRight' && inputs[r + ',' + (c + 1)]) {
+          currentDir = 'across'; inputs[r + ',' + (c + 1)].focus();
+        } else if (e.key === 'ArrowLeft' && inputs[r + ',' + (c - 1)]) {
+          currentDir = 'across'; inputs[r + ',' + (c - 1)].focus();
+        } else if (e.key === 'ArrowDown' && inputs[(r + 1) + ',' + c]) {
+          currentDir = 'down'; inputs[(r + 1) + ',' + c].focus();
+        } else if (e.key === 'ArrowUp' && inputs[(r - 1) + ',' + c]) {
+          currentDir = 'down'; inputs[(r - 1) + ',' + c].focus();
+        }
+      });
+    });
+
+    const statusEl = document.getElementById('status');
+
+    document.getElementById('check').addEventListener('click', () => {
+      let allFilled = true;
+      let allCorrect = true;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (!isOpen(r, c)) continue;
+          const input = inputs[r + ',' + c];
+          input.classList.remove('correct', 'incorrect');
+          if (!input.value) { allFilled = false; continue; }
+          const ok = input.value.toUpperCase() === solution[r][c];
+          input.classList.add(ok ? 'correct' : 'incorrect');
+          if (!ok) allCorrect = false;
+        }
+      }
+      if (!allFilled) {
+        statusEl.textContent = 'Заполните все клетки';
+      } else if (allCorrect) {
+        statusEl.textContent = 'Всё верно! 🎉';
+      } else {
+        statusEl.textContent = 'Есть ошибки — попробуйте ещё раз';
+      }
+    });
+
+    document.getElementById('reset').addEventListener('click', () => {
+      Object.values(inputs).forEach(input => {
+        input.value = '';
+        input.classList.remove('correct', 'incorrect');
+      });
+      statusEl.textContent = 'Заполните клетки и нажмите «Проверить»';
+      const first = inputs['0,0'];
+      if (first) first.focus();
+    });
+  </script>
+</body>
+</html>
